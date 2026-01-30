@@ -1,0 +1,168 @@
+{
+  "personalInfo": {
+    "name": "Alex Johnson",
+    "title": "Senior DevOps Engineer",
+    "photo": null
+  },
+  "skills": [
+    {
+      "name": "Docker",
+      "level": "Expert"
+    },
+    {
+      "name": "Kubernetes",
+      "level": "Advanced"
+    },
+    {
+      "name": "AWS",
+      "level": "Advanced"
+    },
+    {
+      "name": "Terraform",
+      "level": "Advanced"
+    },
+    {
+      "name": "Jenkins",
+      "level": "Expert"
+    },
+    {
+      "name": "Python",
+      "level": "Advanced"
+    },
+    {
+      "name": "Bash Scripting",
+      "level": "Expert"
+    },
+    {
+      "name": "CI/CD Pipelines",
+      "level": "Expert"
+    },
+    {
+      "name": "Ansible",
+      "level": "Intermediate"
+    },
+    {
+      "name": "Prometheus & Grafana",
+      "level": "Advanced"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Senior DevOps Engineer",
+      "company": "TechCorp Inc.",
+      "duration": "2021 - Present",
+      "description": "Leading DevOps initiatives and managing cloud infrastructure for enterprise applications.",
+      "responsibilities": [
+        "Designed and implemented CI/CD pipelines reducing deployment time by 60%",
+        "Managed Kubernetes clusters serving 10M+ requests daily",
+        "Automated infrastructure provisioning using Terraform",
+        "Implemented monitoring and alerting with Prometheus and Grafana",
+        "Led migration from on-premise to AWS cloud infrastructure"
+      ]
+    },
+    {
+      "title": "DevOps Engineer",
+      "company": "StartupXYZ",
+      "duration": "2019 - 2021",
+      "description": "Built and maintained DevOps infrastructure for a fast-growing startup.",
+      "responsibilities": [
+        "Set up Docker and Kubernetes infrastructure from scratch",
+        "Implemented automated testing and deployment pipelines",
+        "Reduced infrastructure costs by 40% through optimization",
+        "Collaborated with development teams to improve deployment processes"
+      ]
+    },
+    {
+      "title": "Systems Administrator",
+      "company": "GlobalTech Solutions",
+      "duration": "2017 - 2019",
+      "description": "Managed Linux servers and automated system administration tasks.",
+      "responsibilities": [
+        "Maintained 100+ Linux servers",
+        "Automated routine tasks using Bash and Python",
+        "Implemented backup and disaster recovery solutions",
+        "Managed user access and security policies"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Cloud Migration Platform",
+      "description": "Led the migration of legacy applications to AWS cloud infrastructure, implementing containerization and orchestration with Kubernetes.",
+      "technologies": [
+        "AWS",
+        "Kubernetes",
+        "Docker",
+        "Terraform",
+        "Jenkins"
+      ],
+      "link": "https://github.com/example/cloud-migration"
+    },
+    {
+      "name": "CI/CD Pipeline Automation",
+      "description": "Designed and implemented automated CI/CD pipelines that reduced deployment time from hours to minutes.",
+      "technologies": [
+        "Jenkins",
+        "GitLab CI",
+        "Docker",
+        "Kubernetes",
+        "Helm"
+      ],
+      "link": "https://github.com/example/cicd-automation"
+    },
+    {
+      "name": "Infrastructure as Code Framework",
+      "description": "Created reusable Terraform modules for standardized infrastructure provisioning across multiple environments.",
+      "technologies": [
+        "Terraform",
+        "AWS",
+        "Ansible",
+        "Python"
+      ],
+      "link": "https://github.com/example/iac-framework"
+    },
+    {
+      "name": "Monitoring & Alerting System",
+      "description": "Implemented comprehensive monitoring solution using Prometheus and Grafana with custom dashboards and alert rules.",
+      "technologies": [
+        "Prometheus",
+        "Grafana",
+        "AlertManager",
+        "Kubernetes",
+        "Python"
+      ],
+      "link": "https://github.com/example/monitoring-system"
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Science in Computer Science",
+      "institution": "State University of Technology",
+      "year": "2013 - 2017",
+      "gpa": "3.8/4.0"
+    },
+    {
+      "degree": "AWS Certified Solutions Architect - Professional",
+      "institution": "Amazon Web Services",
+      "year": "2022"
+    },
+    {
+      "degree": "Certified Kubernetes Administrator (CKA)",
+      "institution": "Cloud Native Computing Foundation",
+      "year": "2021"
+    }
+  ],
+  "contact": {
+    "email": "alex.johnson@example.com",
+    "phone": "+1 (555) 123-4567",
+    "linkedin": "https://linkedin.com/in/alexjohnson",
+    "github": "https://github.com/alexjohnson",
+    "website": "https://alexjohnson.dev"
+  },
+  "settings": {
+    "theme": "modern-professional",
+    "photoPosition": "top-right",
+    "llmProvider": "openai",
+    "llmApiKey": null
+  }
+}
