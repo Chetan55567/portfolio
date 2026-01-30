@@ -39,7 +39,12 @@ echo "Activating virtual environment..."
 source venv/bin/activate
 
 echo "Installing Python dependencies..."
-pip install -r requirements.txt > /dev/null 2>&1
+pip install -r requirements.txt
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Failed to install Python dependencies!${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}Backend setup complete!${NC}"
 
@@ -51,8 +56,13 @@ echo -e "${YELLOW}Setting up Frontend...${NC}"
 cd frontend
 
 if [ ! -d "node_modules" ]; then
-    echo "Installing Node.js dependencies..."
-    npm install > /dev/null 2>&1
+    echo "Installing Node.js dependencies (this may take a few minutes)..."
+    npm install
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to install Node.js dependencies!${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${GREEN}Frontend setup complete!${NC}"

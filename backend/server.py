@@ -11,7 +11,9 @@ import json
 import shutil
 from datetime import datetime, timedelta
 import jwt
-import hashlib
+import bcrypt
+import secrets
+import uuid
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,9 +39,15 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 # JWT settings
-SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+
+# File upload limits
+MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_RESUME_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_PHOTO_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+ALLOWED_RESUME_EXTENSIONS = {'.pdf', '.doc', '.docx'}
 
 security = HTTPBearer()
 
@@ -110,14 +118,19 @@ def load_json_file(file_path: Path, default: Any = None):
     return default if default is not None else {}
 
 def save_json_file(file_path: Path, data: Any):
-    with open(file_path, 'w') as f:
+    # Write to temp file first, then rename for atomic operation
+    temp_file = file_path.with_suffix('.tmp')
+    with open(temp_file, 'w') as f:
         json.dump(data, f, indent=2)
+    temp_file.replace(file_path)
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return hash_password(plain_password) == hashed_password
+    """Verify password against bcrypt hash"""
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -136,6 +149,16 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+def validate_file_extension(filename: str, allowed_extensions: set) -> bool:
+    """Validate file extension"""
+    ext = Path(filename).suffix.lower()
+    return ext in allowed_extensions
+
+def generate_unique_filename(original_filename: str) -> str:
+    """Generate unique filename using UUID"""
+    ext = Path(original_filename).suffix.lower()
+    return f"{uuid.uuid4()}{ext}"
+
 # Initialize default admin user if not exists
 def init_admin():
     admin_data = load_json_file(ADMIN_FILE)
@@ -145,6 +168,7 @@ def init_admin():
             "password_hash": hash_password("admin123")
         }
         save_json_file(ADMIN_FILE, default_admin)
+        logging.info("Default admin user created. Please change the password!")
 
 init_admin()
 
@@ -181,22 +205,34 @@ async def get_portfolio():
             "llmApiKey": None
         }
     })
+    # Remove sensitive data from response
+    if 'settings' in portfolio_data and 'llmApiKey' in portfolio_data['settings']:
+        portfolio_data['settings']['llmApiKey'] = None
     return portfolio_data
 
 @api_router.post("/portfolio")
 async def save_portfolio(portfolio: Portfolio, _=Depends(verify_token)):
-    save_json_file(PORTFOLIO_FILE, portfolio.dict())
+    save_json_file(PORTFOLIO_FILE, portfolio.model_dump())
     return {"message": "Portfolio saved successfully"}
 
 @api_router.post("/upload/photo")
 async def upload_photo(photo: UploadFile = File(...), _=Depends(verify_token)):
-    # Save the photo
-    file_extension = photo.filename.split('.')[-1]
-    filename = f"profile_{datetime.now().timestamp()}.{file_extension}"
+    # Validate file size
+    contents = await photo.read()
+    if len(contents) > MAX_PHOTO_SIZE:
+        raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_PHOTO_SIZE / 1024 / 1024}MB limit")
+    
+    # Validate file extension
+    if not validate_file_extension(photo.filename, ALLOWED_PHOTO_EXTENSIONS):
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPG, PNG, GIF, WEBP")
+    
+    # Generate unique filename
+    filename = generate_unique_filename(photo.filename)
     file_path = PHOTOS_DIR / filename
     
+    # Save the photo
     with open(file_path, 'wb') as buffer:
-        shutil.copyfileobj(photo.file, buffer)
+        buffer.write(contents)
     
     # Return the URL (relative path)
     photo_url = f"/uploads/photos/{filename}"
@@ -204,13 +240,22 @@ async def upload_photo(photo: UploadFile = File(...), _=Depends(verify_token)):
 
 @api_router.post("/resume/upload")
 async def upload_resume(file: UploadFile = File(...), _=Depends(verify_token)):
-    # Save the resume
-    file_extension = file.filename.split('.')[-1]
-    filename = f"resume_{datetime.now().timestamp()}.{file_extension}"
+    # Validate file size
+    contents = await file.read()
+    if len(contents) > MAX_RESUME_SIZE:
+        raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_RESUME_SIZE / 1024 / 1024}MB limit")
+    
+    # Validate file extension
+    if not validate_file_extension(file.filename, ALLOWED_RESUME_EXTENSIONS):
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: PDF, DOC, DOCX")
+    
+    # Generate unique filename
+    filename = generate_unique_filename(file.filename)
     file_path = RESUMES_DIR / filename
     
+    # Save the resume
     with open(file_path, 'wb') as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
     
     # Get portfolio settings for LLM
     portfolio_data = load_json_file(PORTFOLIO_FILE, {})
@@ -219,48 +264,27 @@ async def upload_resume(file: UploadFile = File(...), _=Depends(verify_token)):
     llm_api_key = settings.get('llmApiKey')
     
     # Parse resume using AI
-    extracted_data = await parse_resume_with_ai(file_path, llm_provider, llm_api_key)
-    
-    return {"message": "Resume uploaded", "extractedData": extracted_data}
+    try:
+        extracted_data = await parse_resume_with_ai(file_path, llm_provider, llm_api_key)
+        return {"message": "Resume uploaded and parsed", "extractedData": extracted_data}
+    except NotImplementedError:
+        return {
+            "message": "Resume uploaded but AI parsing is not yet implemented",
+            "filename": filename,
+            "note": "Please fill in your information manually in the admin panel"
+        }
 
 async def parse_resume_with_ai(file_path: Path, llm_provider: str, api_key: Optional[str]):
     """
-    Parse resume using AI. This is a placeholder - you would integrate with actual LLM APIs.
-    For now, it returns a sample structure.
-    """
-    # TODO: Implement actual AI parsing with OpenAI, Emergent, or Anthropic
-    # This would use libraries like PyPDF2 or python-docx to extract text,
-    # then send to LLM for structured extraction
+    Parse resume using AI. This is a placeholder - integrate with actual LLM APIs.
     
-    # Placeholder return
-    return {
-        "personalInfo": {
-            "name": "Extracted Name",
-            "title": "Extracted Title",
-            "photo": None
-        },
-        "skills": [
-            {"name": "Extracted Skill 1", "level": "Advanced"},
-            {"name": "Extracted Skill 2", "level": "Expert"}
-        ],
-        "experience": [
-            {
-                "title": "Extracted Position",
-                "company": "Extracted Company",
-                "duration": "2020 - Present",
-                "description": "Extracted description"
-            }
-        ],
-        "projects": [],
-        "education": [],
-        "contact": {},
-        "settings": {
-            "theme": "modern-professional",
-            "photoPosition": "top-right",
-            "llmProvider": llm_provider,
-            "llmApiKey": api_key
-        }
-    }
+    To implement:
+    1. Extract text from PDF/DOC using PyPDF2 or python-docx
+    2. Send text to LLM with structured extraction prompt
+    3. Parse LLM response into portfolio structure
+    """
+    # TODO: Implement actual AI parsing
+    raise NotImplementedError("AI parsing not yet implemented. Please enter data manually.")
 
 # Include the router in the main app
 app.include_router(api_router)

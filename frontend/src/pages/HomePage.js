@@ -9,6 +9,7 @@ export default function HomePage() {
   const [portfolioData, setPortfolioData] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [photoPosition, setPhotoPosition] = useState('top-right');
 
   useEffect(() => {
@@ -20,8 +21,10 @@ export default function HomePage() {
       const response = await api.get('/portfolio');
       setPortfolioData(response.data);
       setPhotoPosition(response.data.settings?.photoPosition || 'top-right');
+      setError(null);
     } catch (error) {
       console.error('Error fetching portfolio data:', error);
+      setError('Unable to load portfolio data. Using sample data for demonstration.');
       // Set sample data for demonstration
       setPortfolioData({
         personalInfo: {
@@ -97,6 +100,13 @@ export default function HomePage() {
 
   return (
     <div className="w-full h-screen overflow-hidden bg-black">
+      {/* Error message */}
+      {error && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg max-w-md text-center">
+          {error}
+        </div>
+      )}
+
       {/* Professional Photo */}
       {portfolioData?.personalInfo?.photo && (
         <motion.div
